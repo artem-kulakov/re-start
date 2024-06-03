@@ -35,7 +35,7 @@
    header-links
    [:h1 "Add a Location"]
    [:form {:action "/add-location" :method "POST"}
-    (util/anti-forgery-field) ; prevents cross-site scripting attacks
+    (util/anti-forgery-field)
     [:p "x value: " [:input {:type "text" :name "x"}]]
     [:p "y value: " [:input {:type "text" :name "y"}]]
     [:p [:input {:type "submit" :value "submit location"}]]]))
@@ -68,6 +68,12 @@
     (page/html5
      (gen-page-head "All Locations in the db")
      header-links
+     [:h1 "Add a Location"]
+     [:form {:action "/add-location" :method "POST"}
+      (util/anti-forgery-field)
+      [:p "x value: " [:input {:type "text" :name "x"}]]
+      [:p "y value: " [:input {:type "text" :name "y"}]]
+      [:p [:input {:type "submit" :value "submit location"}]]]
      [:h1 "All Locations"]
      [:table
       [:tr [:th "id"] [:th "x"] [:th "y"]]
