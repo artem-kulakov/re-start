@@ -20,6 +20,12 @@
     (throw-unauthorized)
     (views/home-page)))
 
+(defn add-location
+  [req]
+  (if-not (authenticated? req)
+    (throw-unauthorized)
+    (views/add-location-results-page (:params req))))
+
 (defroutes app-routes
   (GET "/"
     []
@@ -28,8 +34,8 @@
     []
     (views/add-location-page))
   (POST "/add-location"
-    {params :params}
-    (views/add-location-results-page params))
+    []
+    add-location)
   (GET "/location/:loc-id"
     [loc-id]
     (views/location-page loc-id))
