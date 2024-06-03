@@ -11,6 +11,8 @@
 
         ring/ring-devel {:mvn/version "1.12.1"}
 
+        buddy/buddy-auth {:mvn/version "3.0.323"}
+
         ;; to generate HTML:
         hiccup/hiccup {:mvn/version "1.0.5"}
 
