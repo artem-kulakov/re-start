@@ -4,6 +4,7 @@
             [compojure.route :as route]
             [my-webapp.views :as views] ; add this require
             [ring.adapter.jetty :as jetty]
+            [ring.middleware.reload :refer [wrap-reload]]
             [ring.middleware.defaults :refer [wrap-defaults site-defaults]]))
 
 (defroutes app-routes ; replace the previous app-routes with this
@@ -23,10 +24,10 @@
     []
     (views/all-locations-page))
   (route/resources "/")
-  (route/not-found "Not Found"))
+  (route/not-found "Not Foundx"))
 
 (def app
-  (wrap-defaults #'app-routes site-defaults))
+  (wrap-reload (wrap-defaults #'app-routes site-defaults)))
 
 (defn -main []
   (jetty/run-jetty #'app {:port 3000}))
