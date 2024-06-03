@@ -13,6 +13,8 @@
 ;; )
 ;; "])
 
+;; (sql/insert! db-spec :users {:username "admin" :password "secret"})
+
 (defn add-location-to-db
   [x y]
   (let [results (sql/insert! db-spec :locations {:x x :y y})]
