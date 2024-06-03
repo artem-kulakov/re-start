@@ -26,9 +26,7 @@
 
 (defn add-location
   [req]
-  (if-not (authenticated? req)
-    (throw-unauthorized)
-    (views/add-location-results-page (:params req))))
+  (auth-request req (views/add-location-results-page (:params req))))
 
 (defroutes app-routes
   (GET "/"
