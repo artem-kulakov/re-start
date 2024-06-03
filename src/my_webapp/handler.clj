@@ -14,11 +14,15 @@
             [buddy.auth.middleware :refer [wrap-authentication wrap-authorization]]
             ))
 
-(defn home
-  [req]
+(defn auth-request
+  [req resp]
   (if-not (authenticated? req)
     (throw-unauthorized)
-    (views/home-page)))
+    resp))
+
+(defn home
+  [req]
+  (auth-request req (views/home-page)))
 
 (defn add-location
   [req]
