@@ -3,3 +3,4 @@
 .cpcache/
 .nrepl-port
 my-db.mv.db
+.lsp/
