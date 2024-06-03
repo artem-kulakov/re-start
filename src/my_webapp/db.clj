@@ -1,7 +1,17 @@
 (ns my-webapp.db
   (:require [next.jdbc.sql :as sql]))
 
+;; (require '[next.jdbc :as jdbc] '[next.jdbc.sql :as sql])
+
 (def db-spec {:dbtype "h2" :dbname "./my-db"})
+
+;; (jdbc/execute-one! db-spec ["
+;; CREATE TABLE users (
+;;   id bigint primary key auto_increment,
+;;   username varchar(30),
+;;   password varchar(30)
+;; )
+;; "])
 
 (defn add-location-to-db
   [x y]
