@@ -46,13 +46,13 @@
   (route/resources "/")
   (route/not-found "Not Found"))
 
-(defn authdata
+(defn get-user-password-hash
   [username]
   (:USERS/PASSWORD (db/get-user-password-hash username)))
 
 (defn my-authfn
   [req {:keys [username password]}]
-  (when-let [user-password-hash (authdata username)]
+  (when-let [user-password-hash (get-user-password-hash username)]
     (when (hashers/verify password user-password-hash)
       (keyword username))))
 
