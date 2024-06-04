@@ -1,5 +1,6 @@
 (ns my-webapp.db
-  (:require [next.jdbc.sql :as sql]))
+  (:require [next.jdbc.sql :as sql]
+            [buddy.hashers :as hashers]))
 
 ;; (require '[next.jdbc :as jdbc] '[next.jdbc.sql :as sql])
 
@@ -9,15 +10,22 @@
 ;; CREATE TABLE users (
 ;;   id bigint primary key auto_increment,
 ;;   username varchar(30),
-;;   password varchar(30)
+;;   password varchar(100)
 ;; )
 ;; "])
 
-;; (sql/insert! db-spec :users {:username "admin" :password "secret"})
+;; (sql/insert! db-spec :users {:username "admin" :password (hashers/derive "secret")})
 
 (defn get-all-users
   []
   (sql/query db-spec ["select username, password from users"]))
+
+(defn get-user-password-hash
+  [username]
+  (let [results (sql/query db-spec
+                           ["select password from users where username = ?" username])]
+    (assert (= (count results) 1))
+    (first results)))
 
 (defn add-location-to-db
   [x y]

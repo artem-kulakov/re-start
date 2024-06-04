@@ -2,5 +2,5 @@
 .clj-kondo/
 .cpcache/
 .nrepl-port
-my-db.mv.db
+*.db
 .lsp/

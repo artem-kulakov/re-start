@@ -10,6 +10,7 @@
             [buddy.auth :refer [authenticated? throw-unauthorized]]
             [buddy.auth.backends.httpbasic :refer [http-basic-backend]]
             [buddy.auth.middleware :refer [wrap-authentication wrap-authorization]]
+            [buddy.hashers :as hashers]
             ))
 
 (defn auth-request
@@ -45,14 +46,14 @@
   (route/resources "/")
   (route/not-found "Not Found"))
 
-(def authdata
-  (let [users (db/get-all-users)]
-    (into {} (map (juxt :USERS/USERNAME :USERS/PASSWORD) users))))
+(defn authdata
+  [username]
+  (:USERS/PASSWORD (db/get-user-password-hash username)))
 
 (defn my-authfn
   [req {:keys [username password]}]
-  (when-let [user-password (get authdata username)]
-    (when (= password user-password)
+  (when-let [user-password-hash (authdata username)]
+    (when (hashers/verify password user-password-hash)
       (keyword username))))
 
 (def auth-backend
