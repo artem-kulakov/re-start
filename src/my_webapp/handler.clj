@@ -3,6 +3,7 @@
   (:require [compojure.core :refer [defroutes GET POST]]
             [compojure.route :as route]
             [my-webapp.views :as views]
+            [my-webapp.db :as db]
             [ring.adapter.jetty :as jetty]
             [ring.middleware.reload :refer [wrap-reload]]
             [ring.middleware.defaults :refer [wrap-defaults site-defaults]]
@@ -45,12 +46,12 @@
   (route/not-found "Not Found"))
 
 (def authdata
-  {:admin "secret"
-   :test "secret"})
+  (let [users (db/get-all-users)]
+    (into {} (map (juxt :USERS/USERNAME :USERS/PASSWORD) users))))
 
 (defn my-authfn
   [req {:keys [username password]}]
-  (when-let [user-password (get authdata (keyword username))]
+  (when-let [user-password (get authdata username)]
     (when (= password user-password)
       (keyword username))))
 
