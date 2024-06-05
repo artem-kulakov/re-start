@@ -9,8 +9,10 @@
         ;; convenient package of "default" middleware:
         ring/ring-defaults {:mvn/version "0.3.4"}
 
+        ;; hot reload
         ring/ring-devel {:mvn/version "1.12.1"}
 
+        ;; authentication
         buddy/buddy-auth {:mvn/version "3.0.323"}
         ;; password hasher:
         buddy/buddy-hashers {:mvn/version "2.0.167"}
