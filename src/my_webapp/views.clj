@@ -4,6 +4,34 @@
             [my-webapp.db :as db]
             [ring.util.anti-forgery :as util]))
 
+
+
+
+(defn app
+  []
+  (let [all-items (db/get-all-items)]
+    (page/html5
+    [:head
+      [:meta {:charset "utf-8"}]
+      [:meta {:name "viewport", :content "width=device-width, initial-scale=1"}]
+      [:title "Hello Bulma!"]
+      [:link {:rel "stylesheet", :href "https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css"}]]
+    [:body
+      [:section {:class "section"}
+      [:div {:class "container"}
+       [:div {:class "columns mt-2"}
+        [:div {:class "column is-narrow"}
+          (for [item all-items]
+            [:div {:class "is-flex is-justify-content-space-between"}
+            [:div {:class "pb-4 pr-6"}
+              [:p (:ITEMS/NAME item)]]
+            [:div
+              [:input {:type "checkbox", (when (:ITEMS/COMPLETE item) :checked) ""}]]]
+            )]]]]])))
+
+
+
+
 (defn gen-page-head
   [title]
   [:head

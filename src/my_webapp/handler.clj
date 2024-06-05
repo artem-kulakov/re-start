@@ -43,6 +43,9 @@
   (GET "/all-locations"
     []
     (views/all-locations-page))
+  (GET "/app"
+    []
+    (views/app))
   (route/resources "/")
   (route/not-found "Not Found"))
 

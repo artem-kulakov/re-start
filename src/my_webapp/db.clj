@@ -6,6 +6,8 @@
 
 (def db-spec {:dbtype "h2" :dbname "./my-db"})
 
+;; Users
+
 ;; (jdbc/execute-one! db-spec ["
 ;; CREATE TABLE users (
 ;;   id bigint primary key auto_increment,
@@ -26,6 +28,25 @@
                            ["select password from users where username = ?" username])]
     (assert (= (count results) 1))
     (first results)))
+
+;; Items
+
+;; (jdbc/execute-one! db-spec ["
+;; CREATE TABLE items (
+;;   id bigint primary key auto_increment,
+;;   name varchar(30) not null,
+;;   complete boolean default false,
+;;   sort real
+;; )
+;; "])
+
+;; (sql/insert! db-spec :items {:name "Bread"})
+
+(defn get-all-items
+  []
+  (sql/query db-spec ["select name, complete from items order by sort desc"]))
+
+;; Locations
 
 (defn add-location-to-db
   [x y]
