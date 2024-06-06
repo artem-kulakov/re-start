@@ -21,6 +21,20 @@
       [:div {:class "container"}
        [:div {:class "columns mt-2"}
         [:div {:class "column is-narrow"}
+          [:form {:method "POST", :action "/add-item"}
+          [:div {:class "field has-addons"}
+            [:div {:class "control"}
+            (util/anti-forgery-field)
+            [:input
+              {:class "input",
+              :type "text",
+              :name "name",
+              :value "",
+              :placeholder "Enter the product name"}]]
+            [:div {:class "control"}
+              [:input {:type "submit", :class "button is-link", :value "Add"}]]]]]]
+       [:div {:class "columns"}
+        [:div {:class "column is-narrow"}
           (for [item all-items]
             [:div {:class "is-flex is-justify-content-space-between"}
             [:div {:class "pb-4 pr-6"}

@@ -7,6 +7,7 @@
             [ring.adapter.jetty :as jetty]
             [ring.middleware.reload :refer [wrap-reload]]
             [ring.middleware.defaults :refer [wrap-defaults site-defaults]]
+            [ring.util.response :refer [redirect]]
             [buddy.auth :refer [authenticated? throw-unauthorized]]
             [buddy.auth.backends.httpbasic :refer [http-basic-backend]]
             [buddy.auth.middleware :refer [wrap-authentication wrap-authorization]]
@@ -27,6 +28,11 @@
   [req]
   (auth-request req (views/add-location-results-page (:params req))))
 
+(defn add-item
+  [req]
+  (db/add-item-sql (get-in req [:params :name]))
+  (redirect "/app"))
+
 (defroutes app-routes
   (GET "/"
     []
@@ -46,6 +52,9 @@
   (GET "/app"
     []
     (views/app))
+  (POST "/add-item"
+    []
+      add-item)
   (route/resources "/")
   (route/not-found "Not Found"))
 

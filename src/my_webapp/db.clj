@@ -1,5 +1,6 @@
 (ns my-webapp.db
   (:require [next.jdbc.sql :as sql]
+            [next.jdbc :as jdbc]
             [buddy.hashers :as hashers]))
 
 ;; (require '[next.jdbc :as jdbc] '[next.jdbc.sql :as sql])
@@ -45,6 +46,22 @@
 (defn get-all-items
   []
   (sql/query db-spec ["select name, complete from items order by sort desc"]))
+
+(defn add-item-sql
+  [name]
+  (jdbc/execute-one! db-spec [
+  "INSERT INTO items (name, sort)
+  VALUES (
+   ?,
+   (SELECT COUNT (*) FROM items) + 1
+  )"
+  name]))
+
+;; (defn add-item
+;;   [name]
+;;   (let [results (sql/insert! db-spec :items {:name name})]
+;;     (assert (and (map? results) (:ITEMS/ID results)))
+;;     results))
 
 ;; Locations
 
