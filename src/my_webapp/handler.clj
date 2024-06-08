@@ -28,11 +28,6 @@
   [req]
   (auth-request req (views/add-location-results-page (:params req))))
 
-(defn add-item
-  [req]
-  (db/add-item-sql (get-in req [:params :name]))
-  (redirect "/app"))
-
 (defroutes app-routes
   (GET "/"
     []
@@ -53,8 +48,9 @@
     []
     (views/app))
   (POST "/add-item"
-    []
-    add-item)
+    [name]
+    (db/add-item-sql name)
+    (redirect "/app"))
   (POST "/toggle-item-complete"
     [id complete]
     (db/update-item-complete id (= complete "false"))
