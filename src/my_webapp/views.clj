@@ -34,24 +34,29 @@
               :value "",
               :placeholder "Enter the product name"}]]
             [:div {:class "control"}
-              [:input {:type "submit", :class "button is-link", :value "Add"}]]]]]]
+              [:input {:type "submit", :class "button is-link", :value "Add"}]]]]]
+        [:div {:class "column"}
+          [:form
+            {:method "POST", :action "/sort-items"}
+            (util/anti-forgery-field)
+            [:input {:type "submit", :class "button is-info", :value "Sort"}]]]]
        [:div {:class "columns"}
         [:div {:class "column is-narrow"}
           (for [item all-items]
             [:div {:class "is-flex is-justify-content-space-between"}
             [:div {:class "pb-4 pr-6"}
               [:p
-               {:class (when (:ITEMS/COMPLETE item) "crossed-out")}
-               (:ITEMS/NAME item)]]
+               {:class (when (:items/complete item) "crossed-out")}
+               (:items/name item)]]
             [:div
               [:form
                 {:method "POST", :action "/toggle-item-complete"}
                 (util/anti-forgery-field)
-                [:input {:type "hidden", :name "id", :value (:ITEMS/ID item)}]
-                [:input {:type "hidden", :name "complete", :value (str (:ITEMS/COMPLETE item))}]
+                [:input {:type "hidden", :name "id", :value (:items/id item)}]
+                [:input {:type "hidden", :name "complete", :value (str (:items/complete item))}]
                 [:input
                  {:type "checkbox",
-                  (when (:ITEMS/COMPLETE item) :checked) ""
+                  (when (:items/complete item) :checked) ""
                   :onchange "this.form.submit()"}]]]])]]]]])))
 
 

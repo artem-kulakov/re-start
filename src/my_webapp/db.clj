@@ -3,15 +3,17 @@
             [next.jdbc :as jdbc]
             [buddy.hashers :as hashers]))
 
-;; (require '[next.jdbc :as jdbc] '[next.jdbc.sql :as sql])
+;; (require '[next.jdbc :as jdbc] '[next.jdbc.sql :as sql] '[buddy.hashers :as hashers])
 
-(def db-spec {:dbtype "h2" :dbname "./my-db"})
+;; You need to create "mywebapp" database
+
+(def db-spec {:dbtype "postgresql" :dbname "mywebapp"})
 
 ;; Users
 
 ;; (jdbc/execute-one! db-spec ["
 ;; CREATE TABLE users (
-;;   id bigint primary key auto_increment,
+;;   id serial primary key,
 ;;   username varchar(30),
 ;;   password varchar(100)
 ;; )
@@ -34,7 +36,7 @@
 
 ;; (jdbc/execute-one! db-spec ["
 ;; CREATE TABLE items (
-;;   id bigint primary key auto_increment,
+;;   id serial primary key,
 ;;   name varchar(30) not null,
 ;;   complete boolean default false,
 ;;   sort real
@@ -67,6 +69,18 @@
   [id complete]
   (let [result (sql/update! db-spec :items {:complete complete} {:id id})]
     (assert (= (:next.jdbc/update-count result) 1))))
+
+(defn sort-items
+  []
+  (jdbc/execute-one! db-spec [
+    "WITH sorted_items AS (
+      SELECT id, ROW_NUMBER() OVER (ORDER BY complete DESC, sort ASC) AS new_sort FROM items
+    )
+    UPDATE items
+    SET sort = sorted_items.new_sort
+    FROM sorted_items
+    WHERE sorted_items.id = items.id"
+  ]))
 
 ;; Locations
 

@@ -53,14 +53,18 @@
     (redirect "/app"))
   (POST "/toggle-item-complete"
     [id complete]
-    (db/update-item-complete id (= complete "false"))
+    (db/update-item-complete (Integer/parseInt id) (= complete "false"))
+    (redirect "/app"))
+  (POST "/sort-items"
+    []
+    (db/sort-items)
     (redirect "/app"))
   (route/resources "/")
   (route/not-found "Not Found"))
 
 (defn get-user-password-hash
   [username]
-  (:USERS/PASSWORD (db/get-user-password-hash username)))
+  (:users/password (db/get-user-password-hash username)))
 
 (defn my-authfn
   [req {:keys [username password]}]
