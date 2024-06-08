@@ -15,7 +15,9 @@
       [:meta {:charset "utf-8"}]
       [:meta {:name "viewport", :content "width=device-width, initial-scale=1"}]
       [:title "Hello Bulma!"]
-      [:link {:rel "stylesheet", :href "https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css"}]]
+      [:link {:rel "stylesheet", :href "https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css"}]
+      [:script {:src "https://unpkg.com/htmx.org@1.9.12"}]
+      (page/include-css "/css/styles.css")]
     [:body
       [:section {:class "section"}
       [:div {:class "container"}
@@ -38,10 +40,19 @@
           (for [item all-items]
             [:div {:class "is-flex is-justify-content-space-between"}
             [:div {:class "pb-4 pr-6"}
-              [:p (:ITEMS/NAME item)]]
+              [:p
+               {:class (when (:ITEMS/COMPLETE item) "crossed-out")}
+               (:ITEMS/NAME item)]]
             [:div
-              [:input {:type "checkbox", (when (:ITEMS/COMPLETE item) :checked) ""}]]]
-            )]]]]])))
+              [:form
+                {:method "POST", :action "/toggle-item-complete"}
+                (util/anti-forgery-field)
+                [:input {:type "hidden", :name "id", :value (:ITEMS/ID item)}]
+                [:input {:type "hidden", :name "complete", :value (str (:ITEMS/COMPLETE item))}]
+                [:input
+                 {:type "checkbox",
+                  (when (:ITEMS/COMPLETE item) :checked) ""
+                  :onchange "this.form.submit()"}]]]])]]]]])))
 
 
 

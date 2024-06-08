@@ -54,7 +54,11 @@
     (views/app))
   (POST "/add-item"
     []
-      add-item)
+    add-item)
+  (POST "/toggle-item-complete"
+    [id complete]
+    (db/update-item-complete id (= complete "false"))
+    (redirect "/app"))
   (route/resources "/")
   (route/not-found "Not Found"))
 

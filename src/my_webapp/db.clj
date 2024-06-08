@@ -45,7 +45,7 @@
 
 (defn get-all-items
   []
-  (sql/query db-spec ["select name, complete from items order by sort desc"]))
+  (sql/query db-spec ["select id, name, complete from items order by sort desc"]))
 
 (defn add-item-sql
   [name]
@@ -62,6 +62,11 @@
 ;;   (let [results (sql/insert! db-spec :items {:name name})]
 ;;     (assert (and (map? results) (:ITEMS/ID results)))
 ;;     results))
+
+(defn update-item-complete
+  [id complete]
+  (let [result (sql/update! db-spec :items {:complete complete} {:id id})]
+    (assert (= (:next.jdbc/update-count result) 1))))
 
 ;; Locations
 

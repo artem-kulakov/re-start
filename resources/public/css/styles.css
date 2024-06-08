@@ -10,3 +10,11 @@ body {
 h1 {
     color: CornflowerBlue;
 }
+
+
+
+/* Items */
+
+.crossed-out {
+  text-decoration: line-through;
+}
