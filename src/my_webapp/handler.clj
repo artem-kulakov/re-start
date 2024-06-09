@@ -1,4 +1,3 @@
-;; src/my_webapp/handler.clj
 (ns my-webapp.handler
   (:require [compojure.core :refer [defroutes GET POST]]
             [compojure.route :as route]
@@ -44,9 +43,11 @@
   (GET "/all-locations"
     []
     (views/all-locations-page))
+
+
   (GET "/app"
-    []
-    (views/app))
+    request
+    (auth-request request (views/app)))
   (POST "/add-item"
     [name]
     (db/add-item-sql name)
@@ -59,6 +60,8 @@
     []
     (db/sort-items)
     (redirect "/app"))
+
+
   (route/resources "/")
   (route/not-found "Not Found"))
 
