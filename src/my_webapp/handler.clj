@@ -14,10 +14,13 @@
             ))
 
 (defn authenticate-request
-  [req resp]
-  (if-not (authenticated? req)
+  [request response]
+  (if-not (authenticated? request)
     (throw-unauthorized)
-    resp))
+    (do
+      (let [route (:compojure/route request)]
+        (println (str (clojure.string/upper-case (str (clojure.core/name (first route)))) " " (last route) " authenticated")))
+      response)))
 
 (defn logout
   [request]
@@ -78,9 +81,9 @@
     request
     (authenticate-request request (views/app)))
   (POST "/add-item"
-    [name]
+    [name :as request]
     (db/add-item-sql name)
-    (redirect "/app"))
+    (authenticate-request request (redirect "/app")))
   (POST "/toggle-item-complete"
     [id complete]
     (db/update-item-complete (Integer/parseInt id) (= complete "false"))
@@ -120,5 +123,5 @@
     (wrap-authorization $ auth-backend)
     (wrap-authentication $ auth-backend)
     (wrap-defaults $ site-defaults)
-    (wrap-reload $)
+    ;; (wrap-reload $)
     (jetty/run-jetty $ {:port 3000})))
