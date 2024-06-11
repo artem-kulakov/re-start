@@ -89,9 +89,9 @@
     (db/update-item-complete (Integer/parseInt id) (= complete "false"))
     (authenticate-request request (redirect "/app")))
   (POST "/sort-items"
-    []
+    request
     (db/sort-items)
-    (redirect "/app"))
+    (authenticate-request request (redirect "/app")))
 
   (GET "/login" [] (views/login))
   (POST "/login" [] login-authenticate)
