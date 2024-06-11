@@ -8,24 +8,53 @@
             [ring.middleware.defaults :refer [wrap-defaults site-defaults]]
             [ring.util.response :refer [redirect]]
             [buddy.auth :refer [authenticated? throw-unauthorized]]
-            [buddy.auth.backends.httpbasic :refer [http-basic-backend]]
             [buddy.auth.middleware :refer [wrap-authentication wrap-authorization]]
             [buddy.hashers :as hashers]
+            [buddy.auth.backends.session :refer [session-backend]]
             ))
 
-(defn auth-request
+(defn authenticate-request
   [req resp]
   (if-not (authenticated? req)
     (throw-unauthorized)
     resp))
 
+(defn logout
+  [request]
+  (-> (redirect "/login")
+      (assoc :session {})))
+
+(defn get-user-password-hash
+  [username]
+  (:users/password (db/get-user-password-hash username)))
+
+(defn login-authenticate
+  "Check request username and password against authdata
+  username and passwords.
+
+  On successful authentication, set appropriate user
+  into the session and redirect to the value of
+  (:next (:query-params request)). On failed
+  authentication, renders the login page."
+  [request]
+  (let [username (get-in request [:form-params "username"])
+        password (get-in request [:form-params "password"])
+        session (:session request)
+        found-password-hash (get-user-password-hash username)]
+    (if (and found-password-hash (hashers/verify password found-password-hash))
+      (let [next-url (get-in request [:query-params "next"] "/app")
+            updated-session (assoc session :identity (keyword username))]
+        (-> (redirect next-url)
+            (assoc :session updated-session)))
+      (views/login))))
+
 (defn home
   [req]
-  (auth-request req (views/home-page)))
+  (authenticate-request req (views/home-page)))
 
 (defn add-location
   [req]
-  (auth-request req (views/add-location-results-page (:params req))))
+  (authenticate-request req (views/add-location-results-page (:params req))))
 
 (defroutes app-routes
   (GET "/"
@@ -47,7 +76,7 @@
 
   (GET "/app"
     request
-    (auth-request request (views/app)))
+    (authenticate-request request (views/app)))
   (POST "/add-item"
     [name]
     (db/add-item-sql name)
@@ -61,29 +90,35 @@
     (db/sort-items)
     (redirect "/app"))
 
+  (GET "/login" [] (views/login))
+  (POST "/login" [] login-authenticate)
+  (GET "/logout" [] logout)
 
   (route/resources "/")
   (route/not-found "Not Found"))
 
-(defn get-user-password-hash
-  [username]
-  (:users/password (db/get-user-password-hash username)))
-
-(defn my-authfn
-  [req {:keys [username password]}]
-  (when-let [user-password-hash (get-user-password-hash username)]
-    (when (hashers/verify password user-password-hash)
-      (keyword username))))
+(defn unauthorized-handler
+  [request metadata]
+  (cond
+    ;; If request is authenticated, raise 403 instead
+    ;; of 401 (because user is authenticated but permission
+    ;; denied is raised).
+    (authenticated? request)
+    (-> (views/error)
+        (assoc :status 403))
+    ;; In other cases, redirect the user to login page.
+    :else
+    (let [current-url (:uri request)]
+      (redirect (format "/login?next=%s" current-url)))))
 
 (def auth-backend
-  (http-basic-backend {:realm "MyExampleSite"
-                       :authfn my-authfn}))
-(def app
-  (wrap-reload (wrap-defaults #'app-routes site-defaults)))
+  (session-backend {:unauthorized-handler unauthorized-handler}))
 
 (defn -main
   [& args]
-  (as-> app $
+  (as-> app-routes $
     (wrap-authorization $ auth-backend)
     (wrap-authentication $ auth-backend)
+    (wrap-defaults $ site-defaults)
+    (wrap-reload $)
     (jetty/run-jetty $ {:port 3000})))

@@ -27,8 +27,7 @@
 
 (defn get-user-password-hash
   [username]
-  (let [results (sql/query db-spec
-                           ["select password from users where username = ?" username])]
+  (let [results (sql/query db-spec ["select password from users where username = ?" username])]
     (assert (= (count results) 1))
     (first results)))
 

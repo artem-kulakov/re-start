@@ -21,7 +21,10 @@
     [:body
       [:section {:class "section"}
       [:div {:class "container"}
-       [:div {:class "columns mt-2"}
+       [:div {:class "columns"}
+        [:div {:class "column"}
+          [:p [:a {:href "/logout"} "Logout!"]]]]
+       [:div {:class "columns"}
         [:div {:class "column is-narrow"}
           [:form {:method "POST", :action "/add-item"}
           [:div {:class "field has-addons"}
@@ -59,7 +62,23 @@
                   (when (:items/complete item) :checked) ""
                   :onchange "this.form.submit()"}]]]])]]]]])))
 
+(defn login
+  []
+  (page/html5
+    [:h1 "Login Page"]
+    [:form
+    {:method "post"}
+     (util/anti-forgery-field)
+    [:input {:type "text", :placeholder "Username:", :name "username"}]
+    [:input
+      {:type "password", :placeholder "Password:", :name "password"}]
+    [:input {:type "submit", :value "Submit"}]]))
 
+
+(defn error
+  []
+  (page/html5
+   [:h1 "Error"]))
 
 
 (defn gen-page-head
