@@ -85,9 +85,9 @@
     (db/add-item-sql name)
     (authenticate-request request (redirect "/app")))
   (POST "/toggle-item-complete"
-    [id complete]
+    [id complete :as request]
     (db/update-item-complete (Integer/parseInt id) (= complete "false"))
-    (redirect "/app"))
+    (authenticate-request request (redirect "/app")))
   (POST "/sort-items"
     []
     (db/sort-items)
