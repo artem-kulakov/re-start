@@ -123,5 +123,5 @@
     (wrap-authorization $ auth-backend)
     (wrap-authentication $ auth-backend)
     (wrap-defaults $ site-defaults)
-    ;; (wrap-reload $)
+    (wrap-reload $)
     (jetty/run-jetty $ {:port 3000})))

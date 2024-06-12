@@ -23,7 +23,7 @@
       [:div {:class "container"}
        [:div {:class "columns"}
         [:div {:class "column"}
-          [:p [:a {:href "/logout"} "Logout!"]]]]
+          [:p [:a {:href "/logout"} "Logout"]]]]
        [:div {:class "columns"}
         [:div {:class "column is-narrow"}
           [:form {:method "POST", :action "/add-item"}
