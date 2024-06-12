@@ -16,6 +16,7 @@
       [:meta {:name "viewport", :content "width=device-width, initial-scale=1"}]
       [:title "Hello Bulma!"]
       [:link {:rel "stylesheet", :href "https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css"}]
+      [:link {:rel "manifest", :href "/manifest.webmanifest"}]
       [:script {:src "https://unpkg.com/htmx.org@1.9.12"}]
       (page/include-css "/css/styles.css")]
     [:body
