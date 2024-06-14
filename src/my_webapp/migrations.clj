@@ -14,7 +14,7 @@
 (migratus/init config)
 
 ; create a migration
-(migratus/create config "create-users")
+(migratus/create config "create-user-lists")
 
 ;apply pending migrations
 (migratus/migrate config)
