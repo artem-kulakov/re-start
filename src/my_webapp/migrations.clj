@@ -10,20 +10,17 @@
              :migration-table-name "migrations"
              :db {:dbtype "postgresql" :dbname "mywebapp"}})
 
-;initialize the database using the 'init.sql' script
-(migratus/init config)
-
-; create a migration
-(migratus/create config "create-user-lists")
-
-;apply pending migrations
-(migratus/migrate config)
-
-;rollback the migration with the latest timestamp
-(migratus/rollback config)
-
-;bring up migrations matching the ids
-(migratus/up config 20111206154000)
-
-;bring down migrations matching the ids
-(migratus/down config 20111206154000)
+(comment
+  ;initialize the database using the 'init.sql' script
+  (migratus/init config)
+  ; create a migration
+  (migratus/create config "foo")
+  ;apply pending migrations
+  (migratus/migrate config)
+  ;rollback the migration with the latest timestamp
+  (migratus/rollback config)
+  ;bring up migrations matching the ids
+  (migratus/up config 20111206154000)
+  ;bring down migrations matching the ids
+  (migratus/down config 20111206154000)
+  )
