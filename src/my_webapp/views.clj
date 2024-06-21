@@ -13,16 +13,20 @@
       (page/include-css "/css/bulma.min.css")
       (page/include-css "/css/styles.css")])
 
+(def nav
+  [:div#nav
+   [:a {:href "/lists"} "My lists"]
+   " | "
+   [:a {:href "/logout"} "Logout"]])
+
 (defn lists
   [lists]
   (page/html5
    (page-head "My lists")
+   nav
     [:body
     [:section {:class "section"}
       [:div {:class "container"}
-      [:div {:class "columns"}
-        [:div {:class "column"}
-        [:p [:a {:href "/logout"} "Logout"]]]]
       [:div {:class "columns"}
         [:div {:class "column is-narrow"}
         [:form {:method "POST", :action "/add-list"}
@@ -48,6 +52,7 @@
   [list items]
   (page/html5
    (page-head name)
+   nav
    [:body
     [:section {:class "section"}
      [:div {:class "container"}
