@@ -1,20 +1,37 @@
-/* body {
-    background-color: Cornsilk;
-} */
-
-#header-links {
-    background-color: BurlyWood;
-    padding: 10px;
+html, body {
+  height: 100%;
 }
 
-h1 {
-    color: CornflowerBlue;
-}
-
-
-
-/* Items */
+/* list-page */
 
 .crossed-out {
   text-decoration: line-through;
+}
+
+.blue {
+  color: #0d6efd;
+}
+.indigo {
+  color: #6610f2;
+}
+.pink {
+  color: #d63384;
+}
+.red {
+  color: #dc3545;
+}
+.orange {
+  color: #fd7e14;
+}
+.yellow {
+  color: #ffc107;
+}
+.green {
+  color: #198754;
+}
+.teal {
+  color: #20c997;
+}
+.cyan {
+  color: #0dcaf0;
 }
