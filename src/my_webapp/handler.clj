@@ -11,7 +11,11 @@
             [buddy.auth :refer [authenticated? throw-unauthorized]]
             [buddy.auth.middleware :refer [wrap-authentication wrap-authorization]]
             [buddy.hashers :as hashers]
-            [buddy.auth.backends.session :refer [session-backend]]))
+            [buddy.auth.backends.session :refer [session-backend]]
+            [aero.core :as aero]
+            [clojure.java.io :as io]))
+
+(def config (aero/read-config (io/resource "config.edn")))
 
 (defn authenticate
   [request]
@@ -120,7 +124,7 @@
 
 (defn -main
   [& _args]
-  (jetty/run-jetty #'app {:port 3000})
+  (jetty/run-jetty #'app {:port (:port config)})
   )
 
 (comment
