@@ -1,2 +1,2 @@
-{:port #or [#env PORT 3000]
+{:port #or [#env PORT "3000"]
  :jdbc-database-url #or [#env JDBC_DATABASE_URL "jdbc:postgresql://localhost/mywebapp"]}
