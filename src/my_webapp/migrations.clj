@@ -10,7 +10,9 @@
   {:datastore  (jdbc/sql-database {:connection-uri (:jdbc-database-url app-config)})
    :migrations (jdbc/load-resources "migrations")})
 
-(repl/migrate config)
+(defn migrate
+  []
+  (repl/migrate config))
 
 (comment
   (repl/migrate config)

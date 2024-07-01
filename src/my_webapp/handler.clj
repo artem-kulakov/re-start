@@ -125,8 +125,10 @@
   (wrap-reload $)))
 
 (defn -main
-  [& _args]
-  (jetty/run-jetty #'app {:port (parse-long (:port config))}))
+  [& [arg]]
+  (if (= arg "migrate")
+    (migrations/migrate)
+    (jetty/run-jetty #'app {:port (parse-long (:port config))})))
 
 (comment
   ;; evaluate this def form to start the webapp via the REPL:
