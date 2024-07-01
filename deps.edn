@@ -21,7 +21,7 @@
         hiccup/hiccup {:mvn/version "1.0.5"}
 
         ;; database migrations
-        migratus/migratus {:mvn/version "1.5.6"}
+        ragtime/ragtime {:mvn/version "0.8.1"}
 
         ;; SQL queries
         com.layerware/hugsql-core {:mvn/version "0.5.3"}

@@ -13,7 +13,8 @@
             [buddy.hashers :as hashers]
             [buddy.auth.backends.session :refer [session-backend]]
             [aero.core :as aero]
-            [clojure.java.io :as io])
+            [clojure.java.io :as io]
+            [my-webapp.migrations :as migrations])
   (:gen-class))
 
 (def config (aero/read-config (io/resource "config.edn")))
@@ -124,9 +125,8 @@
   (wrap-reload $)))
 
 (defn -main
-  [& [port]]
-  (let [port (parse-long (or port (:port config)))]
-    (jetty/run-jetty #'app {:port port})))
+  [& _args]
+  (jetty/run-jetty #'app {:port (parse-long (:port config))}))
 
 (comment
   ;; evaluate this def form to start the webapp via the REPL:
