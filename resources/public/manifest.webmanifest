@@ -1,7 +1,7 @@
 {
   "name": "my-web-app",
   "short_name": "mwa",
-  "start_url": "/app",
+  "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
   "theme_color": "#ffffff",
