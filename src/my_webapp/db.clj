@@ -22,5 +22,4 @@
 
 (comment
   ;; create a user with an encrypted password
-  (query :create-user! {:name "admin" :password (hashers/derive "secret")})
-  )
+  (query :create-user! {:name "admin" :password (hashers/derive "secret")}))

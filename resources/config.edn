@@ -1,2 +1,6 @@
 {:port #or [#env PORT "3000"]
- :jdbc-database-url #or [#env JDBC_DATABASE_URL "jdbc:postgresql://localhost/mywebapp"]}
+ :jdbc-database-url #or [#env JDBC_DATABASE_URL "jdbc:postgresql://localhost/mywebapp"]
+ :smtp-host #or [#env MAILGUN_SMTP_SERVER "127.0.0.1"]
+ :smtp-port #or [#env MAILGUN_SMTP_PORT "1025"]
+ :smtp-user #or [#env MAILGUN_SMTP_LOGIN ""]
+ :smtp-pass #or [#env MAILGUN_SMTP_PASSWORD ""]}
