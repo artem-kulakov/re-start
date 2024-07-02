@@ -8,6 +8,8 @@
             [ring.middleware.reload :refer [wrap-reload]]
             [ring.middleware.defaults :refer [wrap-defaults site-defaults]]
             [ring.util.response :refer [redirect]]
+            [ring.middleware.session :refer [wrap-session]]
+            [ring.middleware.session.cookie :refer [cookie-store]]
             [buddy.auth :refer [authenticated? throw-unauthorized]]
             [buddy.auth.middleware :refer [wrap-authentication wrap-authorization]]
             [buddy.hashers :as hashers]
@@ -122,6 +124,7 @@
   (wrap-authorization $ auth-backend)
   (wrap-authentication $ auth-backend)
   (wrap-defaults $ site-defaults)
+  (wrap-session $ {:store (cookie-store {:key "a 16-byte secret"})})
   (wrap-reload $)))
 
 (defn -main
@@ -136,4 +139,5 @@
   (def server (jetty/run-jetty #'app {:port 3000 :join? false}))
   ;; evaluate this form to stop the webapp via the the REPL:
   (.stop server)
+  (+ 1 2)
   )
