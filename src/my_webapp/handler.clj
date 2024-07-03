@@ -9,14 +9,14 @@
             [ring.middleware.defaults :refer [wrap-defaults site-defaults]]
             [ring.util.response :refer [redirect]]
             [ring.middleware.session :refer [wrap-session]]
-            [ring.middleware.session.cookie :refer [cookie-store]]
             [buddy.auth :refer [authenticated? throw-unauthorized]]
             [buddy.auth.middleware :refer [wrap-authentication wrap-authorization]]
             [buddy.hashers :as hashers]
             [buddy.auth.backends.session :refer [session-backend]]
             [aero.core :as aero]
             [clojure.java.io :as io]
-            [my-webapp.migrations :as migrations])
+            [my-webapp.migrations :as migrations]
+            [jdbc-ring-session.core :refer [jdbc-store]])
   (:gen-class))
 
 (def config (aero/read-config (io/resource "config.edn")))
@@ -124,7 +124,7 @@
   (wrap-authorization $ auth-backend)
   (wrap-authentication $ auth-backend)
   (wrap-defaults $ site-defaults)
-  (wrap-session $ {:store (cookie-store {:key "a 16-byte secret"})})
+  (wrap-session $ {:store (jdbc-store db/db-spec {:table :session_store})})
   (wrap-reload $)))
 
 (defn -main
