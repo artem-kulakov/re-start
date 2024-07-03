@@ -8,6 +8,7 @@
             [ring.middleware.reload :refer [wrap-reload]]
             [ring.middleware.defaults :refer [wrap-defaults site-defaults]]
             [ring.util.response :refer [redirect]]
+            [ring.middleware.session :refer [wrap-session]]
             [buddy.auth :refer [authenticated? throw-unauthorized]]
             [buddy.auth.middleware :refer [wrap-authentication wrap-authorization]]
             [buddy.hashers :as hashers]
@@ -122,6 +123,7 @@
   (wrap-authorization $ auth-backend)
   (wrap-authentication $ auth-backend)
   (wrap-defaults $ site-defaults)
+  (wrap-session $ {:cookie-attrs {:max-age (* 3600 24 7)}})
   (wrap-reload $)))
 
 (defn -main
