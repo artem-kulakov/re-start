@@ -117,7 +117,7 @@
 (def auth-backend
   (session-backend {:unauthorized-handler unauthorized-handler}))
 
-(def app
+(defonce app
   (as-> #'app-routes $
   (wrap-authorization $ auth-backend)
   (wrap-authentication $ auth-backend)
