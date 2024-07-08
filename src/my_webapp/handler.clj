@@ -15,7 +15,8 @@
             [buddy.auth.backends.session :refer [session-backend]]
             [aero.core :as aero]
             [clojure.java.io :as io]
-            [my-webapp.migrations :as migrations])
+            [my-webapp.migrations :as migrations]
+            [my-webapp.mailer :as mailer])
   (:gen-class))
 
 (def config (aero/read-config (io/resource "config.edn")))
@@ -41,18 +42,18 @@
       (assoc :session {})))
 
 (defn login-authenticate
-  "Check request username and password against authdata
-  username and passwords.
+  "Check request email and password against authdata
+  email and passwords.
 
   On successful authentication, set appropriate user
   into the session and redirect to the value of
   (:next (:query-params request)). On failed
   authentication, renders the login page."
   [request]
-  (let [name (get-in request [:form-params "name"])
+  (let [email (get-in request [:form-params "email"])
         password (get-in request [:form-params "password"])
         session (:session request)
-        found-user (db/query :get-user {:name name})]
+        found-user (db/query :get-user {:email email})]
     (if (and (:password found-user) (hashers/verify password (:password found-user)))
       (let [next-url (get-in request [:query-params "next"] "/lists")
             updated-session (assoc session :identity (:id found-user))]
@@ -97,7 +98,43 @@
   (GET "/login" [] (views/login))
   (POST "/login" [] login-authenticate)
   (GET "/logout" [] logout)
-
+  (GET "/sign-up" [] (views/sign-up))
+  (POST "/sign-up"
+    [name email password :as request]
+    (if (:exists (db/query :user-exists {:email email}))
+      (views/sign-up "A user with this email already exists")
+      (let [user-id (db/query :create-user! {:name name :email email :password (hashers/derive password)})
+            updated-session (assoc (:session request) :identity (:id (first user-id)))]
+        (-> (redirect "/lists")
+            (assoc :session updated-session)))))
+  (GET "/forgot-password"
+    []
+    (views/forgot-password))
+  (POST "/forgot-password"
+    [email :as request]
+    (let [id (:id (db/query :get-user {:email email}))
+          token (str (random-uuid))]
+      (if id
+       (do
+         (db/query :store-token! {:id id :token token})
+         (mailer/send-message email "Reset your password" (views/reset-password-message (get-in request [:headers "host"]) token))
+         (views/forgot-password "Please check your inbox."))
+       (views/forgot-password "There is no user with this email address."))))
+  (GET "/reset-password"
+    [token]
+    (let [id (:id (db/query :get-user-by-token {:token token}))]
+      (if id
+        (views/reset-password token)
+        (redirect "/login"))))
+  (POST "/reset-password"
+    [password token :as request]
+    (let [id (:id (db/query :get-user-by-token {:token token}))]
+      (if id
+        (do
+          (db/query :update-password! {:id id :password (hashers/derive password)})
+          (-> (redirect "/lists")
+              (assoc :session (assoc (:session request) :identity id))))
+        (redirect "/login"))))
   (route/resources "/")
   (route/not-found "Not Found"))
 
@@ -138,4 +175,5 @@
   (def server (jetty/run-jetty #'app {:port 3000 :join? false}))
   ;; evaluate this form to stop the webapp via the the REPL:
   (.stop server)
-  )
+  (views/reset-password-message "host" "token")
+  (.toLocalDateTime (:token_expiration (db/query :get-user-by-token {:token "9b4b0bec-53d8-4c53-a79d-ad0bc69c05b9"}))))

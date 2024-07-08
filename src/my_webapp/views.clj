@@ -3,7 +3,7 @@
             [ring.util.anti-forgery :as util]))
 
 (defn page-head
-  ([title styles]
+  [title & [styles]]
     [:head
      [:meta {:charset "utf-8"}]
      [:meta {:name "viewport" :content "width=device-width, initial-scale=1"}]
@@ -15,7 +15,7 @@
        :integrity
        "sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
        :crossorigin "anonymous"}]
-     (page/include-css (str "/css/" styles ".css"))
+     (page/include-css (str "/css/" (or styles "styles") ".css"))
      [:link {:rel "manifest", :href "/manifest.webmanifest"}]
      [:script
       {:src
@@ -23,7 +23,6 @@
        :integrity
        "sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
        :crossorigin "anonymous"}]])
-  ([title] (page-head title "styles")))
 
 (defn nav
   ([page]
@@ -101,10 +100,35 @@
            [:li.list-group-item
             [:a.link-underline-light.link-dark {:href (str "lists/" (:id list))} (:name list)]])]]]]]))
 
+(defn sign-up
+  [& [message]]
+  (page/html5
+   (page-head "Sign up")
+   [:body.d-flex.align-items-center.bg-warning
+    [:div.container
+     [:div.row
+      [:div.col
+       [:form
+        {:method "post"}
+        (util/anti-forgery-field)
+        [:div.mb-3
+         [:label.form-label {:for "name"} "Name"]
+         [:input#name.form-control {:type "text" :name "name" :required true}]]
+        [:div.mb-3
+         [:label.form-label {:for "email"} "Email address"]
+         [:input#email.form-control
+          {:type "email" :placeholder "name@example.com" :name "email" :required true}]]
+        [:div.mb-3
+         [:label.form-label {:for "password"} "Password"]
+         [:input#password.form-control {:type "password" :name "password" :required true}]]
+        [:div.mb-3.text-center
+         [:input.btn.btn-secondary {:type "submit", :value "Sign up"}]]
+        [:div.text-center.text-light message]]]]]]))
+
 (defn login
   []
   (page/html5
-    (page-head (:name "Login") "login")
+    (page-head "Login" "login")
     [:body.d-flex.align-items-center.bg-danger.bg-gradient
      [:div.container
       [:div.row
@@ -112,10 +136,63 @@
         [:form
         {:method "post"}
           (util/anti-forgery-field)
-          [:div.input-group
-            [:input.form-control {:type "text", :placeholder "Name:", :name "name"}]
-            [:input.form-control {:type "password", :placeholder "Password:", :name "password"}]
-            [:input.btn.btn-secondary {:type "submit", :value "Sign in"}]]]]]]]))
+          [:div.mb-3
+            [:label.form-label {:for "email"} "Email address"]
+            [:input#email.form-control
+              {:type "email" :placeholder "name@example.com" :name "email" :required true}]]
+          [:div.mb-3
+            [:label.form-label {:for "password"} "Password"]
+            [:input#password.form-control {:type "password" :name "password" :required true}]]
+          [:div.mb-3.text-center
+           [:input.btn.btn-secondary {:type "submit", :value "Sign in"}]]
+          [:div.mb-3.text-center
+           [:a.link-light {:href "/sign-up"} "Sign up"]]
+          [:div.text-center
+           [:a.link-light {:href "/forgot-password"} "Forgot password?"]]]]]]]))
+
+(defn forgot-password
+  [& [message]]
+  (page/html5
+   (page-head "Forgot password")
+   [:body.d-flex.align-items-center.bg-danger.bg-gradient
+    [:div.container
+     [:div.row
+      [:div.col
+       [:form
+        {:method "post"}
+        (util/anti-forgery-field)
+        [:div.mb-3
+         [:label.form-label {:for "email"} "Email address"]
+         [:input#email.form-control
+          {:type "email" :placeholder "name@example.com" :name "email" :required true}]]
+        [:div.mb-3.text-center
+         [:input.btn.btn-secondary {:type "submit", :value "Send recovery link"}]]
+        [:div.text-center.text-light message]]]]]]))
+
+(defn reset-password
+  [token]
+  (page/html5
+   (page-head "Forgot password")
+   [:body.d-flex.align-items-center.bg-danger.bg-gradient
+    [:div.container
+     [:div.row
+      [:div.col
+       [:form
+        {:method "post"}
+        (util/anti-forgery-field)
+        [:div.mb-3
+         [:label.form-label {:for "password"} "Set a new password"]
+         [:input#password.form-control {:type "password" :name "password" :required true :autocomplete "new-password"}]]
+        [:input {:type "hidden" :name "token" :value token}]
+        [:div.mb-3.text-center
+         [:input.btn.btn-secondary {:type "submit", :value "Save password"}]]]]]]]))
+
+(defn reset-password-message
+  [host token]
+  (page/html5
+    [:body
+     [:a {:href (str host "/reset-password?token=" token)} "Reset your password"]
+     [:p "The link is active for 24 hours."]]))
 
 (defn error
   []

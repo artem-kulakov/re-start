@@ -22,4 +22,6 @@
 
 (comment
   ;; create a user with an encrypted password
-  (query :create-user! {:name "admin" :password (hashers/derive "secret")}))
+  (query :create-user! {:name "admin3" :email "ab@b.com" :password (hashers/derive "secret")})
+  (:exists (query :user-exists {:email "artem.kulakov@gmail.com"}))
+  (:id (query :get-user {:email "b@b.com"})))

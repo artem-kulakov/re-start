@@ -14,6 +14,13 @@
   []
   (repl/migrate config))
 
+(defn create
+  "Creates migration files"
+  [name]
+  (let [time (.format (java.text.SimpleDateFormat. "yyyyMMddhhmmss") (new java.util.Date))]
+    (map #(spit (str "resources/migrations/" time "-" name "." % ".sql") "") ["up" "down"])))
+
 (comment
   (repl/migrate config)
-  (repl/rollback config))
+  (repl/rollback config)
+  (create "add-token-to-users"))

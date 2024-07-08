@@ -1,16 +1,45 @@
 -- USERS --
 
--- :name create-user! :! :n
+-- :name user-exists :? :1
+-- :doc checks if user exists
+SELECT EXISTS(
+  SELECT 1
+  FROM users
+  WHERE email = :email
+);
+
+-- :name create-user! :<!
 -- :doc creates a new user
 INSERT INTO users
-(name, password)
-VALUES (:name, :password);
+(name, email, password)
+VALUES (:name, :email, :password)
+RETURNING id;
 
 -- :name get-user :? :1
--- :doc get user
+-- :doc gets the user by email
 SELECT id, password
 FROM users
-WHERE name = :name;
+WHERE email = :email;
+
+-- :name get-user-by-token :? :1
+-- :doc gets the user by token
+SELECT id
+FROM users
+WHERE token = :token AND
+      NOW() < token_expiration;
+
+-- :name store-token! :! :n
+-- :doc stores the token and its expiration date
+UPDATE users
+SET token = :token,
+    token_expiration = NOW() + INTERVAL '24 hours'
+WHERE id = :id
+
+-- :name update-password! :! :n
+-- :doc updates the password
+UPDATE users
+SET password = :password
+WHERE id = :id
 
 -- LISTS --
 
@@ -29,7 +58,7 @@ VALUES
 (:user-id, (SELECT id FROM rows));
 
 -- :name get-lists :? :*
--- :doc get all user lists
+-- :doc gets all user lists
 SELECT lists.id, name
 FROM lists
   INNER JOIN user_lists
@@ -37,7 +66,7 @@ FROM lists
 WHERE user_id = :user-id;
 
 -- :name get-list :? :1
--- :doc get user list
+-- :doc gets user list
 SELECT lists.id, name
 FROM lists
   INNER JOIN user_lists
@@ -45,7 +74,7 @@ FROM lists
 WHERE user_id = :user-id AND lists.id = :id;
 
 -- :name get-list-items :? :*
--- :doc get list items
+-- :doc gets list items
 SELECT id, name, complete
 FROM items
 WHERE list_id = :id

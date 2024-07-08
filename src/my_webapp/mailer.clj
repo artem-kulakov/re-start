@@ -6,16 +6,16 @@
 (def config (aero/read-config (io/resource "config.edn")))
 
 (defn send-message
-  []
+  [to subject body]
   (postal/send-message {:host (:smtp-host config)
                         :port (parse-long (:smtp-port config))
                         :auth "on"
                         :user (:smtp-user config)
                         :pass (:smtp-pass config)}
                        {:from "me@draines.com"
-                        :to "artem.kulakov@gmail.com"
-                        :subject "Fourth message"
-                        :body "Salut Artem! Comment ca va?"}))
+                        :to to
+                        :subject subject
+                        :body body}))
 
 (comment
-  (send-message))
+  (send-message "artem.kulakov@gmail.com" "Hello" "Hello Artem"))
