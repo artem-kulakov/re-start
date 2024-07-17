@@ -41,6 +41,42 @@ UPDATE users
 SET password = :password
 WHERE id = :id
 
+-- :name set-name-and-password! :! :n
+-- :doc sets the name and the password
+UPDATE users
+SET name = :name,
+    password = :password
+WHERE id = :id
+
+-- INVITES --
+
+-- :name create-invite! :<!
+-- :doc creates a new invite
+INSERT INTO invites
+(user_id, user_2_email, record, token)
+VALUES (:user-id, :user-2-email, :record, :token);
+
+-- :name get-invite :? :1
+-- :doc gets the invite
+SELECT *
+FROM invites
+WHERE token = :token AND accepted IS NULL;
+
+-- :name accept-invite! :! :n
+-- :doc marks the invite as accepted
+UPDATE invites
+SET accepted = true
+WHERE token = :token;
+
+-- CONTACTS --
+
+-- :name create-contact! :! :n
+-- :doc creates a new contact
+INSERT INTO contacts
+(user_id, user_2_id)
+VALUES
+(:user-id, :user-2-id);
+
 -- LISTS --
 
 -- :name create-list! :! :n
@@ -79,6 +115,14 @@ SELECT id, name, complete
 FROM items
 WHERE list_id = :id
 ORDER BY sort DESC;
+
+-- USER-LISTS --
+
+-- :name create-user-list! :<!
+-- :doc creates a new user-list
+INSERT INTO user_lists
+(user_id, list_id)
+VALUES (:user-id, :list-id);
 
 -- ITEMS --
 

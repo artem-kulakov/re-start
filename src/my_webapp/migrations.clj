@@ -23,4 +23,4 @@
 (comment
   (repl/migrate config)
   (repl/rollback config)
-  (create "add-token-to-users"))
+  (create "add-accepted-to-invites"))

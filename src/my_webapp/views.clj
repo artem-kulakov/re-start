@@ -25,23 +25,28 @@
        :crossorigin "anonymous"}]])
 
 (defn nav
-  ([page]
+  [& [page]]
   [:div.row.my-2
    [:div.col
     [:div.btn-group
-      [:a.btn.btn-light {:href "/lists" :class (when (= page "lists") "disabled")} "Lists"]
+      [:a.btn.btn-light {:href "/lists" :class (when (= (or page "") "lists") "disabled")} "Lists"]
       [:a.btn.btn-light {:href "/logout"} "Logout"]]]])
-  ([] (nav "")))
 
 (def colors
   ["blue" "yellow" "indigo" "green" "red" "teal" "orange" "cyan" "pink"])
 
+(defn alert
+  [flash]
+  (when flash [:div.alert.alert-warning.mt-2 {:role "alert"}
+          flash]))
+
 (defn list-page
-  [list items]
+  [list items flash]
   (page/html5
    (page-head (:name list))
    [:body.bg-danger.bg-gradient
     [:div.container
+     (alert flash)
      (nav)
      [:div.row
       [:div.col.d-flex.flex-row.justify-content-between
@@ -57,7 +62,9 @@
        [:form
         {:method "POST", :action (str "/lists/" (:id list) "/sort-items")}
         (util/anti-forgery-field)
-        [:input.btn.btn-secondary {:type "submit", :value "Sort"}]]]]
+        [:input.btn.btn-secondary {:type "submit", :value "Sort"}]]
+       [:div
+        [:a.btn.btn-secondary {:href (str "/contacts/new?list-id=" (:id list))} "Share"]]]]
      [:div.row
       [:div.col
        [:ul.list-group.mb-2
@@ -76,11 +83,12 @@
               [:input {:type "hidden", :name "complete", :value (str (:complete item))}]]])]]]]]))
 
 (defn lists
-  [lists]
+  [lists flash]
   (page/html5
    (page-head (:name list))
    [:body.bg-success.bg-gradient
     [:div.container
+     (alert flash)
      (nav "lists")
      [:div.row
       [:div.col.d-flex.flex-row.justify-content-between
@@ -101,7 +109,7 @@
             [:a.link-underline-light.link-dark {:href (str "lists/" (:id list))} (:name list)]])]]]]]))
 
 (defn sign-up
-  [& [message]]
+  [& {:keys [message token email]}]
   (page/html5
    (page-head "Sign up")
    [:body.d-flex.align-items-center.bg-warning
@@ -117,7 +125,8 @@
         [:div.mb-3
          [:label.form-label {:for "email"} "Email address"]
          [:input#email.form-control
-          {:type "email" :placeholder "name@example.com" :name "email" :required true}]]
+          {:type "email" :placeholder "name@example.com" :name "email" :required true :value email :readonly (some? email)}]
+         [:input {:type "hidden" :value token}]]
         [:div.mb-3
          [:label.form-label {:for "password"} "Password"]
          [:input#password.form-control {:type "password" :name "password" :required true}]]
@@ -198,3 +207,27 @@
   []
   (page/html5
    [:h1 "Error"]))
+
+(defn new-contact
+  [list]
+  (page/html5
+   (page-head "New contact")
+   [:body.d-flex.align-items-center.bg-success
+   [:div.container
+    [:div.row
+     [:div.col
+      [:form
+       {:action "/contacts" :method "post"}
+       (util/anti-forgery-field)
+       [:div.mb-3
+        [:label.form-label {:for "email"} (str "Enter the email address of the person you want to share the \"" (:name list) "\" list with")]
+        [:input#email.form-control {:type "email" :name "email" :required true}]]
+       [:input {:type "hidden" :name "list-id" :value (:id list)}]
+       [:div.mb-3.text-center
+        [:input.btn.btn-secondary {:type "submit", :value "Share"}]]]]]]]))
+
+(defn share-list-message
+  [protocol host token]
+  (page/html5
+   [:body
+    [:a {:href (str protocol "://" host "/sign-up?token=" token)} "Accept"]]))

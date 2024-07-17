@@ -9,6 +9,7 @@
             [ring.middleware.defaults :refer [wrap-defaults site-defaults]]
             [ring.util.response :refer [redirect]]
             [ring.middleware.session :refer [wrap-session]]
+            [ring.middleware.flash :refer [wrap-flash]]
             [buddy.auth :refer [authenticated? throw-unauthorized]]
             [buddy.auth.middleware :refer [wrap-authentication wrap-authorization]]
             [buddy.hashers :as hashers]
@@ -68,7 +69,9 @@
   (GET "/lists"
     {{:keys [identity]} :session :as request}
     (when (authenticate request)
-      (views/lists (db/query :get-lists {:user-id identity}))))
+      (views/lists
+       (db/query :get-lists {:user-id identity})
+       (:flash request))))
   (POST "/add-list"
     [name :as {{:keys [identity]} :session} :as request]
     (when (authenticate request)
@@ -79,7 +82,7 @@
     (when (authenticate request)
       (let [list (db/query :get-list {:user-id identity :id (Integer/parseInt id)})
             items (db/query :get-list-items {:id (Integer/parseInt id)})]
-        (views/list-page list items))))
+        (views/list-page list items (:flash request)))))
   (POST "/lists/:id/add-item"
     [id name :as {{:keys [identity]} :session} :as request]
     (when (authenticate request)
@@ -98,15 +101,28 @@
   (GET "/login" [] (views/login))
   (POST "/login" [] login-authenticate)
   (GET "/logout" [] logout)
-  (GET "/sign-up" [] (views/sign-up))
+  (GET "/sign-up"
+    [token]
+    (if-let [email (when token (:user_2_email (db/query :get-invite {:token token})))]
+      (views/sign-up :token token :email email)
+      (views/sign-up)))
   (POST "/sign-up"
-    [name email password :as request]
+    [name email password token :as request]
     (if (:exists (db/query :user-exists {:email email}))
-      (views/sign-up "A user with this email already exists")
-      (let [user-id (db/query :create-user! {:name name :email email :password (hashers/derive password)})
-            updated-session (assoc (:session request) :identity (:id (first user-id)))]
-        (-> (redirect "/lists")
-            (assoc :session updated-session)))))
+      (views/sign-up :message "A user with this email already exists")
+      (let [user-2-id (:id (first (db/query :create-user! {:name name :email email :password (hashers/derive password)})))
+            updated-session (assoc (:session request) :identity user-2-id)]
+        (if-let [invite (when token (db/query :get-invite {:token token}))]
+          (do
+            (db/query :create-contact! {:user-id (:user_id invite) :user-2-id user-2-id})
+            (let [list-id (Integer/parseInt (second (clojure.string/split (:record invite) #":")))]
+              (db/query :create-user-list! {:user-id user-2-id
+                                            :list-id list-id})
+              (db/query :accept-invite! {:token token})
+              (-> (redirect (str "/lists/" list-id))
+                  (assoc :session updated-session :flash "You have successfully signed up"))))
+          (-> (redirect "/lists")
+              (assoc :session updated-session :flash "You have successfully signed up"))))))
   (GET "/forgot-password"
     []
     (views/forgot-password))
@@ -135,6 +151,22 @@
           (-> (redirect "/lists")
               (assoc :session (assoc (:session request) :identity id))))
         (redirect "/login"))))
+  (GET "/contacts/new"
+    [list-id :as {{:keys [identity]} :session} :as request]
+    (when (authenticate request)
+      (views/new-contact (db/query :get-list {:user-id identity :id (Integer/parseInt list-id)}))))
+  (POST "/contacts"
+    [email list-id :as {{:keys [identity]} :session} :as request]
+    (when (authenticate request)
+      (let [token (str (random-uuid))]
+        (db/query :create-invite! {:user-2-email email :user-id identity
+                                   :record (str "lists:" list-id) :token token})
+        (mailer/send-message
+          email
+          "User shared a list with you"
+          (views/share-list-message (name (:scheme request)) (get-in request [:headers "host"]) token))
+        (-> (redirect (str "/lists/" list-id))
+            (assoc :flash (str "An email was sent to " email))))))
   (route/resources "/")
   (route/not-found "Not Found"))
 
@@ -161,6 +193,7 @@
   (wrap-authentication $ auth-backend)
   (wrap-defaults $ site-defaults)
   (wrap-session $ {:cookie-attrs {:max-age (* 3600 24 7)}})
+  (wrap-flash $)
   (wrap-reload $)))
 
 (defn -main
@@ -174,6 +207,4 @@
   ;; :join? false runs the web server in the background!
   (def server (jetty/run-jetty #'app {:port 3000 :join? false}))
   ;; evaluate this form to stop the webapp via the the REPL:
-  (.stop server)
-  (views/reset-password-message "host" "token")
-  (.toLocalDateTime (:token_expiration (db/query :get-user-by-token {:token "9b4b0bec-53d8-4c53-a79d-ad0bc69c05b9"}))))
+  (.stop server))
