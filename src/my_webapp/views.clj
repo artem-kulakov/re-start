@@ -80,7 +80,8 @@
                   (nth colors (mod (:id item) 9)))}
                 (:name item)]
               [:input {:type "hidden", :name "id", :value (:id item)}]
-              [:input {:type "hidden", :name "complete", :value (str (:complete item))}]]])]]]]]))
+              [:input {:type "hidden", :name "complete", :value (str (:complete item))}]]])]]]]
+    [:script {:src "/js/client.js"}]]))
 
 (defn lists
   [lists flash]
@@ -90,6 +91,7 @@
     [:div.container
      (alert flash)
      (nav "lists")
+     [:input {:type "button" :name "login" :value "Log in" :onclick "connect()"}]
      [:div.row
       [:div.col.d-flex.flex-row.justify-content-between
        [:form {:method "POST", :action "/add-list"}

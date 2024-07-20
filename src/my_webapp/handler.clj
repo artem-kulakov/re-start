@@ -4,7 +4,8 @@
             [my-webapp.views :as views]
             [my-webapp.db :as db]
             [clojure.string :as str]
-            [ring.adapter.jetty :as jetty]
+            [ring.adapter.undertow :refer [run-undertow]]
+            [ring.adapter.undertow.websocket :as ws]
             [ring.middleware.reload :refer [wrap-reload]]
             [ring.middleware.defaults :refer [wrap-defaults site-defaults]]
             [ring.util.response :refer [redirect]]
@@ -21,6 +22,22 @@
   (:gen-class))
 
 (def config (aero/read-config (io/resource "config.edn")))
+
+(def all-channels (atom {}))
+
+(defn handler
+  [list-id user-id]
+  {:undertow/websocket
+   {:on-open (fn
+               [{:keys [channel]}]
+               (swap! all-channels assoc-in [list-id channel] user-id)
+               (println @all-channels))
+    :on-message (fn [{:keys [channel _data]}] (ws/send "message received" channel))
+    :on-close-message (fn
+                        [{:keys [channel _message]}]
+                        (let [list-channels (get @all-channels list-id)]
+                          (swap! all-channels assoc list-id (dissoc list-channels channel)))
+                        (println @all-channels))}})
 
 (defn authenticate
   [request]
@@ -63,6 +80,9 @@
       (views/login))))
 
 (defroutes app-routes
+  (GET "/echo"
+    [id :as {{:keys [identity]} :session}]
+    (handler id identity))
   (GET "/"
     []
     (redirect "/lists"))
@@ -87,6 +107,9 @@
     [id name :as {{:keys [identity]} :session} :as request]
     (when (authenticate request)
       (db/query :create-item! {:name name :user-id identity :list-id (Integer/parseInt id) })
+      (let [channels (keys (filter #(not= (second %) identity) (get @all-channels id)))]
+        (doseq [channel channels]
+          (ws/send "New item just created" channel)))
       (redirect (str "/lists/" id))))
   (POST "/toggle-item-complete"
     [id complete :as request]
@@ -200,11 +223,17 @@
   [& [arg]]
   (if (= arg "migrate")
     (migrations/migrate)
-    (jetty/run-jetty #'app {:port (parse-long (:port config))})))
+    (run-undertow #'app {:port (parse-long (:port config))})))
 
 (comment
   ;; evaluate this def form to start the webapp via the REPL:
   ;; :join? false runs the web server in the background!
-  (def server (jetty/run-jetty #'app {:port 3000 :join? false}))
+  (def server (run-undertow #'app {:port 3000 :join? false}))
   ;; evaluate this form to stop the webapp via the the REPL:
-  (.stop server))
+  (.stop server)
+  (get {1 "a" 2 "b"} 3)
+  (conj [1 2 3] 4)
+  (vec (remove #{1} [1 2 3]))
+  (type '("1"))
+  (println '(1 2 3))
+  (doseq [item [1 2 3]] (println item)))
