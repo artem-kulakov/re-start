@@ -109,7 +109,7 @@
       (db/query :create-item! {:name name :user-id identity :list-id (Integer/parseInt id) })
       (let [channels (keys (filter #(not= (second %) identity) (get @all-channels id)))]
         (doseq [channel channels]
-          (ws/send "New item just created" channel)))
+          (ws/send "A new element has just been added." channel)))
       (redirect (str "/lists/" id))))
   (POST "/toggle-item-complete"
     [id complete :as request]
