@@ -9,7 +9,8 @@ socket.addEventListener("open", (event) => {
 
 socket.addEventListener("message", (event) => {
   const el = document.getElementsByClassName("alert")[0];
-  el.textContent = event.data;
+  const url = location.href;
+  el.innerHTML = `${event.data} <a href="${url}">Refresh</a> to see`;
   el.classList.remove("d-none");
   console.log("Message from server: ", event.data);
 });
