@@ -30,14 +30,12 @@
   {:undertow/websocket
    {:on-open (fn
                [{:keys [channel]}]
-               (swap! all-channels assoc-in [list-id channel] user-id)
-               (println @all-channels))
-    :on-message (fn [{:keys [channel _data]}] (ws/send "message received" channel))
+               (swap! all-channels assoc-in [list-id channel] user-id))
+    :on-message (fn [{:keys [_channel _data]}] (println "message received"))
     :on-close-message (fn
                         [{:keys [channel _message]}]
                         (let [list-channels (get @all-channels list-id)]
-                          (swap! all-channels assoc list-id (dissoc list-channels channel)))
-                        (println @all-channels))}})
+                          (swap! all-channels assoc list-id (dissoc list-channels channel))))}})
 
 (defn authenticate
   [request]
