@@ -47,6 +47,7 @@
    [:body.bg-danger.bg-gradient
     [:div.container
      (alert flash)
+     [:div.alert.alert-warning.mt-2.d-none {:role "alert"} "foo"]
      (nav)
      [:div.row
       [:div.col.d-flex.flex-row.justify-content-between
@@ -81,7 +82,7 @@
                 (:name item)]
               [:input {:type "hidden", :name "id", :value (:id item)}]
               [:input {:type "hidden", :name "complete", :value (str (:complete item))}]]])]]]]
-    [:script {:src "/js/client.js"}]]))
+    [:script {:src "/js/main.js"}]]))
 
 (defn lists
   [lists flash]

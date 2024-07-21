@@ -5,3 +5,10 @@
 *.db
 .lsp/
 target/
+
+# Shadow CLJS
+node_modules/
+.shadow-cljs/
+resources/public/js/cljs-runtime/
+resources/public/js/main.js
+resources/public/js/manifest.edn
