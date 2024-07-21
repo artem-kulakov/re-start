@@ -17,7 +17,7 @@
  "message"
  (fn
    [_e]
-   (let [el (.getElementsByClassName js/document "alert")]
-     (.log js/console (.-classList el))
+   (let [el (first (.getElementsByClassName js/document "alert"))]
+     (set! (.-textContent el) (.-data js/event))
      (.remove (.-classList el) "d-none"))
    (.log js/console "Message from server: " (.-data js/event))))
