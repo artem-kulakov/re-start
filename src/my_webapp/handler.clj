@@ -1,237 +1,112 @@
 (ns my-webapp.handler
-  (:require [compojure.core :refer [defroutes GET POST]]
-            [compojure.route :as route]
-            [my-webapp.views :as views]
-            [my-webapp.db :as db]
-            [clojure.string :as str]
-            [ring.adapter.undertow :refer [run-undertow]]
-            [ring.adapter.undertow.websocket :as ws]
-            [ring.middleware.reload :refer [wrap-reload]]
-            [ring.middleware.defaults :refer [wrap-defaults site-defaults]]
-            [ring.util.response :refer [redirect]]
-            [ring.middleware.session :refer [wrap-session]]
-            [ring.middleware.flash :refer [wrap-flash]]
-            [buddy.auth :refer [authenticated? throw-unauthorized]]
-            [buddy.auth.middleware :refer [wrap-authentication wrap-authorization]]
-            [buddy.hashers :as hashers]
-            [buddy.auth.backends.session :refer [session-backend]]
-            [aero.core :as aero]
-            [clojure.java.io :as io]
-            [my-webapp.migrations :as migrations]
-            [my-webapp.mailer :as mailer])
-  (:gen-class))
+  (:require
+   [clojure.java.io :as io]
+   [clojure.string :as str]
+   [clojure.tools.logging :as log])
+  (:import [java.net ServerSocket]
+           [java.net SocketException]
+           [java.nio.file Files]
+           [java.io File]
+           [java.io InputStream OutputStream]))
 
-(def config (aero/read-config (io/resource "config.edn")))
+(def responses {200 "HTTP/1.1 200 OK\r\n"
+                301 "HTTP/1.1 301 Moved Permanently\n"
+                404 "HTTP/1.1 404 Not Found\r\n"})
 
-(def all-channels (atom {}))
+(defn stream-bytes [is]
+  (let [baos (java.io.ByteArrayOutputStream.)]
+    (io/copy is baos)
+    (.toByteArray baos)))
 
-(defn handler
-  [list-id user-id]
-  {:undertow/websocket
-   {:on-open (fn
-               [{:keys [channel]}]
-               (swap! all-channels assoc-in [list-id channel] user-id))
-    :on-message (fn [{:keys [_channel _data]}] (println "message received"))
-    :on-close-message (fn
-                        [{:keys [channel _message]}]
-                        (let [list-channels (get @all-channels list-id)]
-                          (swap! all-channels assoc list-id (dissoc list-channels channel))))}})
+(defprotocol StreamableResponseBody
+  (write-body-to-stream [body response output-stream]))
 
-(defn authenticate
-  [request]
-  (if-not (authenticated? request)
-    (throw-unauthorized)
-    (do
-      (let [route (:compojure/route request)]
-        (println (str
-                  (java.time.LocalDateTime/now)
-                  " "
-                  (str/upper-case (str (clojure.core/name (first route))))
-                  " "
-                  (last route)
-                  " authenticated")))
-      true)))
+(extend-protocol StreamableResponseBody
+  (Class/forName "[B")
+  (write-body-to-stream [body _ ^OutputStream output-stream]
+    (.write output-stream ^bytes body)
+    (.close output-stream))
+  String
+  (write-body-to-stream [body _ output-stream]
+    (.write output-stream (.getBytes body))
+    (.close output-stream))
+  InputStream
+  (write-body-to-stream [body _ ^OutputStream output-stream]
+    (.write output-stream (stream-bytes body))
+    (.flush output-stream)
+    (.close output-stream))
+  File
+  (write-body-to-stream [body _ ^OutputStream output-stream]
+    (log/debug "write-body-to-stream" (.getName body))
+    (.write output-stream (Files/readAllBytes (.toPath body)))
+    (.flush output-stream)
+    (.close output-stream)))
 
-(defn logout
-  [_]
-  (-> (redirect "/login")
-      (assoc :session {})))
+(defn init-request-map [conn]
+  {:server-port (.getLocalPort conn) :server-name (.getInetAddress conn) :remote-addr (.getRemoteSocketAddress conn)})
 
-(defn login-authenticate
-  "Check request email and password against authdata
-  email and passwords.
+(defn parse-request [conn]
+  (let [r (io/reader (.getInputStream conn))]
+    (loop [line (.readLine r)
+           request (init-request-map conn)]
+      (if (seq (str/trim line))
+        (if (str/starts-with? line "GET")
+          (let [[request-method uri protocol] (str/split line #" ")]
+            (log/info line)
+            (recur (.readLine r) (assoc request :request-method request-method :uri uri :protocol protocol)))
+          (let [[k v] (str/split line #":")]
+            (recur (.readLine r) (assoc request :headers {k v}))))
+        request))))
 
-  On successful authentication, set appropriate user
-  into the session and redirect to the value of
-  (:next (:query-params request)). On failed
-  authentication, renders the login page."
-  [request]
-  (let [email (get-in request [:form-params "email"])
-        password (get-in request [:form-params "password"])
-        session (:session request)
-        found-user (db/query :get-user {:email email})]
-    (if (and (:password found-user) (hashers/verify password (:password found-user)))
-      (let [next-url (get-in request [:query-params "next"] "/lists")
-            updated-session (assoc session :identity (:id found-user))]
-        (-> (redirect next-url)
-            (assoc :session updated-session)))
-      (views/login))))
+(defn write-headers [response output-stream]
+  (.write output-stream (into-array Byte/TYPE (str
+                                               (get responses (:status response))
+                                               (apply str (for [[k v] (:headers response)] (str k " " v "\r\n")))
+                                               "\r\n")))
+  output-stream)
 
-(defroutes app-routes
-  (GET "/echo"
-    [id :as {{:keys [identity]} :session}]
-    (handler id identity))
-  (GET "/"
-    []
-    (redirect "/lists"))
-  (GET "/lists"
-    {{:keys [identity]} :session :as request}
-    (when (authenticate request)
-      (views/lists
-       (db/query :get-lists {:user-id identity})
-       (:flash request))))
-  (POST "/add-list"
-    [name :as {{:keys [identity]} :session} :as request]
-    (when (authenticate request)
-      (db/query :create-list! {:name name :user-id identity})
-      (redirect "/lists")))
-  (GET "/lists/:id"
-    [id :as {{:keys [identity]} :session} :as request]
-    (when (authenticate request)
-      (let [list (db/query :get-list {:user-id identity :id (Integer/parseInt id)})
-            items (db/query :get-list-items {:id (Integer/parseInt id)})]
-        (views/list-page list items (:flash request)))))
-  (POST "/lists/:id/add-item"
-    [id name :as {{:keys [identity]} :session} :as request]
-    (when (authenticate request)
-      (db/query :create-item! {:name name :user-id identity :list-id (Integer/parseInt id) })
-      (let [channels (keys (filter #(not= (second %) identity) (get @all-channels id)))]
-        (doseq [channel channels]
-          (ws/send "A new element has just been added." channel)))
-      (redirect (str "/lists/" id))))
-  (POST "/toggle-item-complete"
-    [id complete :as request]
-    (when (authenticate request)
-      (db/query :update-item-complete! {:id (Integer/parseInt id) :complete (= complete "false")})
-      (redirect (get-in request [:headers "referer"]))))
-  (POST "/lists/:id/sort-items"
-    [id :as request]
-    (when (authenticate request)
-      (db/query :sort-list-items! {:id (Integer/parseInt id)})
-      (redirect (str "/lists/" id))))
-  (GET "/login" [] (views/login))
-  (POST "/login" [] login-authenticate)
-  (GET "/logout" [] logout)
-  (GET "/sign-up"
-    [token]
-    (if-let [email (when token (:user_2_email (db/query :get-invite {:token token})))]
-      (views/sign-up :token token :email email)
-      (views/sign-up)))
-  (POST "/sign-up"
-    [name email password token :as request]
-    (if (:exists (db/query :user-exists {:email email}))
-      (views/sign-up :message "A user with this email already exists")
-      (let [user-2-id (:id (first (db/query :create-user! {:name name :email email :password (hashers/derive password)})))
-            updated-session (assoc (:session request) :identity user-2-id)]
-        (if-let [invite (when token (db/query :get-invite {:token token}))]
-          (do
-            (db/query :create-contact! {:user-id (:user_id invite) :user-2-id user-2-id})
-            (let [list-id (Integer/parseInt (second (clojure.string/split (:record invite) #":")))]
-              (db/query :create-user-list! {:user-id user-2-id
-                                            :list-id list-id})
-              (db/query :accept-invite! {:token token})
-              (-> (redirect (str "/lists/" list-id))
-                  (assoc :session updated-session :flash "You have successfully signed up"))))
-          (-> (redirect "/lists")
-              (assoc :session updated-session :flash "You have successfully signed up"))))))
-  (GET "/forgot-password"
-    []
-    (views/forgot-password))
-  (POST "/forgot-password"
-    [email :as request]
-    (let [id (:id (db/query :get-user {:email email}))
-          token (str (random-uuid))]
-      (if id
-       (do
-         (db/query :store-token! {:id id :token token})
-         (mailer/send-message email "Reset your password" (views/reset-password-message (get-in request [:headers "host"]) token))
-         (views/forgot-password "Please check your inbox."))
-       (views/forgot-password "There is no user with this email address."))))
-  (GET "/reset-password"
-    [token]
-    (let [id (:id (db/query :get-user-by-token {:token token}))]
-      (if id
-        (views/reset-password token)
-        (redirect "/login"))))
-  (POST "/reset-password"
-    [password token :as request]
-    (let [id (:id (db/query :get-user-by-token {:token token}))]
-      (if id
-        (do
-          (db/query :update-password! {:id id :password (hashers/derive password)})
-          (-> (redirect "/lists")
-              (assoc :session (assoc (:session request) :identity id))))
-        (redirect "/login"))))
-  (GET "/contacts/new"
-    [list-id :as {{:keys [identity]} :session} :as request]
-    (when (authenticate request)
-      (views/new-contact (db/query :get-list {:user-id identity :id (Integer/parseInt list-id)}))))
-  (POST "/contacts"
-    [email list-id :as {{:keys [identity]} :session} :as request]
-    (when (authenticate request)
-      (let [token (str (random-uuid))]
-        (db/query :create-invite! {:user-2-email email :user-id identity
-                                   :record (str "lists:" list-id) :token token})
-        (mailer/send-message
-          email
-          "User shared a list with you"
-          (views/share-list-message (name (:scheme request)) (get-in request [:headers "host"]) token))
-        (-> (redirect (str "/lists/" list-id))
-            (assoc :flash (str "An email was sent to " email))))))
-  (route/resources "/")
-  (route/not-found "Not Found"))
+(defn send-response [conn response]
+  (cond->> (write-headers response (.getOutputStream conn))
+    (:body response) (write-body-to-stream (:body response) response)))
 
-(defn unauthorized-handler
-  [request _metadata]
-  (cond
-    ;; If request is authenticated, raise 403 instead
-    ;; of 401 (because user is authenticated but permission
-    ;; denied is raised).
-    (authenticated? request)
-    (-> (views/error)
-        (assoc :status 403))
-    ;; In other cases, redirect the user to login page.
-    :else
-    (let [current-url (:uri request)]
-      (redirect (format "/login?next=%s" current-url)))))
+(defn tcp-listener [server f]
+  (future
+    (try
+      (while (not (.isClosed server))
+        (loop [conn (.accept server)]
+          (let [request (parse-request conn)]
+            (send-response conn (f request)))
+          (recur (.accept server))))
+      (catch SocketException e {:msg (.getMessage e)}))))
 
-(def auth-backend
-  (session-backend {:unauthorized-handler unauthorized-handler}))
+(defn run-adapter [handler options]
+  (let [server (ServerSocket. (:port options))]
+    (tcp-listener server handler)
+    (fn close [] (.close server))))
 
-(defonce app
-  (as-> #'app-routes $
-  (wrap-authorization $ auth-backend)
-  (wrap-authentication $ auth-backend)
-  (wrap-defaults $ site-defaults)
-  (wrap-session $ {:cookie-attrs {:max-age (* 3600 24 7)}})
-  (wrap-flash $)
-  (wrap-reload $)))
+;; example handler (serving static resources)
 
-(defn -main
-  [& [arg]]
-  (if (= arg "migrate")
-    (migrations/migrate)
-    (run-undertow #'app {:port (parse-long (:port config))})))
+(defn old-handler [request]
+  (let [redirects {"/" "index.html"
+                   "/index.htm" "index.html"}
+        base-path "/tmp/resources"]
+    (cond
+      (contains? redirects (:uri request)) {:status 301
+                                            :headers {"Location:" (get redirects (:uri request))}}
+      (.exists (io/file (str base-path (:uri request)))) (let [file (io/file (str base-path (:uri request)))
+                                                               content-type (Files/probeContentType (.toPath file))]
+                                                           {:status 200
+                                                            :headers {"Content-Type:" content-type}
+                                                            :body file})
+
+      :else {:status 404
+             :headers {"Content-Type:" "text/html"}
+             :body "<html>404</html>"})))
+
+(defn handler [_request]
+  {:status 200
+   :headers {"Content-Type:" "text/html"}
+   :body "Hello world"})
 
 (comment
-  ;; evaluate this def form to start the webapp via the REPL:
-  ;; :join? false runs the web server in the background!
-  (def server (run-undertow #'app {:port 3000 :join? false}))
-  ;; evaluate this form to stop the webapp via the the REPL:
-  (.stop server)
-  (get {1 "a" 2 "b"} 3)
-  (conj [1 2 3] 4)
-  (vec (remove #{1} [1 2 3]))
-  (type '("1"))
-  (println '(1 2 3))
-  (doseq [item [1 2 3]] (println item)))
+  (run-adapter handler {:port 3000}))
