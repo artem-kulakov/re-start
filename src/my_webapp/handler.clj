@@ -30,14 +30,12 @@
   {:undertow/websocket
    {:on-open (fn
                [{:keys [channel]}]
-               (swap! all-channels assoc-in [list-id channel] user-id)
-               (println @all-channels))
-    :on-message (fn [{:keys [channel _data]}] (ws/send "message received" channel))
+               (swap! all-channels assoc-in [list-id channel] user-id))
+    :on-message (fn [{:keys [_channel _data]}] (println "message received"))
     :on-close-message (fn
                         [{:keys [channel _message]}]
                         (let [list-channels (get @all-channels list-id)]
-                          (swap! all-channels assoc list-id (dissoc list-channels channel)))
-                        (println @all-channels))}})
+                          (swap! all-channels assoc list-id (dissoc list-channels channel))))}})
 
 (defn authenticate
   [request]
@@ -109,7 +107,7 @@
       (db/query :create-item! {:name name :user-id identity :list-id (Integer/parseInt id) })
       (let [channels (keys (filter #(not= (second %) identity) (get @all-channels id)))]
         (doseq [channel channels]
-          (ws/send "New item just created" channel)))
+          (ws/send "A new element has just been added." channel)))
       (redirect (str "/lists/" id))))
   (POST "/toggle-item-complete"
     [id complete :as request]

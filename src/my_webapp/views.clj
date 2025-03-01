@@ -47,6 +47,7 @@
    [:body.bg-danger.bg-gradient
     [:div.container
      (alert flash)
+     [:div.alert.alert-warning.mt-2.d-none {:role "alert"} "foo"]
      (nav)
      [:div.row
       [:div.col.d-flex.flex-row.justify-content-between
